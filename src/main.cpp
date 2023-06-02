@@ -3,6 +3,7 @@
 
 // startuje z pravého horního rohu 
 // tlačítko Up spouští přípravu, tlačítko Down vybírá strany; startovací lanko rozjíždí 
+// při zapnutém/zasunutém startovacím lanku NELZE NAPROGRAMOVAT ROBOTKU/RBCX !!!
 
 unsigned long startTime = 0; // zacatek programu 
 const unsigned long finalTime = 127000; // cas, kdy program konci, konci cca o 700ms driv real: 127000
@@ -182,13 +183,14 @@ void setup() {
             // rkMotorsDriveAsync(500 - rkMotorsGetPositionLeft(), 500, speed, [&](){printf("ze startu\n"); state = 3;});
         }
 
-        printf("L:%.2f R:%.2f \n", rkMotorsGetPositionLeft(), rkMotorsGetPositionRight());
+        printf("L:%.2f R:%.2f T:%i \n", rkMotorsGetPositionLeft(true), rkMotorsGetPositionRight(true), millis()-startTime );
         delay(50); 
 
-        if(rkButtonDown(true)) {
+        if(rkButtonRight(true)) {
             rkMotorsSetSpeed(0,0); // nezastavi 
             rkMotorsSetPower(0,0); 
             printf("stiskunto prave tlacitko - zastavuji");
+            delay(100);
             abort();
 
         }
