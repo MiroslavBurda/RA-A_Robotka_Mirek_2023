@@ -1,6 +1,6 @@
 #include "robotka.h"
 #include <thread>
-
+#include <atomic>
 // startuje z pravého horního rohu 
 // tlačítko Up spouští přípravu, tlačítko Down vybírá strany; startovací lanko rozjíždí 
 // při zapnutém/zasunutém startovacím lanku NELZE NAPROGRAMOVAT ROBOTKU/RBCX !!!
@@ -18,10 +18,10 @@ byte readData1[readSize]= {0};
 byte readData2[readSize]= {0};
 byte state = 1; // stav programu
 bool startState = false; // if je odstartovano vytazenim lanka 
-byte speed = 35; // obvykla rychlost robota
+byte speed = 50; // obvykla rychlost robota
 byte speedSlow = 20; // pomala = zataceci rychlost robota  
 
-
+std::atomic_bool g_started;
 /**
  * @brief Funkce na vyhledání nejmenší hodnoty z byte pole. !!! Nulu to nebere jako nejmenší !!!
  * 
@@ -42,6 +42,7 @@ byte min_arr(byte *arr, int &index){
 }
 
 void ultrasonic() {
+    g_started.
     int pozice0, pozice1, pozice2;
     while (true) {
             if (Serial1.available() > 0) { 
@@ -136,7 +137,7 @@ void setup() {
 
     startTime = millis();   
 
-    //std::thread t2(ultrasonic);
+    
     std::thread t3(stopTime); // vlakno pro zastaveni po uplynuti casu 
 
     fmt::print("{}'s Robotka '{}' with {} mV started!\n", cfg.owner, cfg.name, rkBatteryVoltageMv());
@@ -154,7 +155,7 @@ void setup() {
     while(true) {   
         if(!rkButtonLeft(false)) { // vytazeni startovaciho lanka na tl. Left rozjede robota  
             startState = true;
-            printf("Rozjizdim se\n");
+            printf("Rozjizdim se %lu \n", millis() );
             break;
         }
         if(rkButtonDown(true)) {
@@ -170,14 +171,18 @@ void setup() {
         }
         delay(10);
     }
-    delay(500); // robot se pri vytahovani lanka musi pridrzet -> pocka, nez oddelam ruku, 
+    printf("Rozjizdim se %lu \n", millis() );
+    delay(1500); // robot se pri vytahovani lanka musi pridrzet -> pocka, nez oddelam ruku, 
+    printf("Rozjel jsem se %lu \n", millis() );
+    std::thread t2(ultrasonic);
+    printf("Start Ultrasonic %lu \n", millis() );
 // ********************************************************************************************
    while(true){  // hlavni smycka 
         if(state == 1) {
             state = 2;
             rkMotorsSetPositionLeft(true);
             rkMotorsSetPositionRight(true);
-            rkMotorsDriveAsync(500, 500, speedSlow, [&](){printf("ze startu\n"); state = 3;}); //500, 500
+            rkMotorsDriveAsync(500, 500, speed, [&](){printf("ze startu\n"); state = 3;}); //500, 500
             
             // dojeti zbytku vzdalenosti
             // rkMotorsDriveAsync(500 - rkMotorsGetPositionLeft(), 500, speed, [&](){printf("ze startu\n"); state = 3;});
@@ -186,64 +191,65 @@ void setup() {
         printf("L:%.2f R:%.2f T:%i \n", rkMotorsGetPositionLeft(true), rkMotorsGetPositionRight(true), millis()-startTime );
         delay(50); 
 
-        if(rkButtonRight(true)) {
-            rkMotorsSetSpeed(0,0); // nezastavi 
-            rkMotorsSetPower(0,0); 
-            printf("stiskunto prave tlacitko - zastavuji");
-            delay(100);
-            abort();
+        // if(rkButtonRight(true)) {
+        //     rkMotorsSetSpeed(0,0); // nezastavi 
+        //     rkMotorsSetPower(0,0); 
+        //     printf("stiskunto prave tlacitko - zastavuji");
+        //     delay(100);
+        //     abort();
+        
 
+        if(state == 3) {
+            state = 4;
+            float turnState3 = 135;
+            if (red){
+                rkMotorsDriveAsync(turnState3, -turnState3, speedSlow, [&](){printf("zatocil k nakladaku\n"); state = 5;});
+            }
+            else {
+                rkMotorsDriveAsync(-turnState3, turnState3, speedSlow, [&](){printf("zatocil k nakladaku\n"); state = 5;});              
+            }
+            delay(500);
         }
-        // if(state == 3) {
-        //     state = 4;
-        //     if (red){
-        //         rkMotorsDriveAsync(150, -150, speedSlow, [&](){printf("zatocil k nakladaku\n"); state = 5;});
-        //     }
-        //     else {
-        //         rkMotorsDriveAsync(-150, 150, speedSlow, [&](){printf("zatocil k nakladaku\n"); state = 5;});
-        //         delay(500);
-        //     }
-        // }
-        // if(state == 5) {
-        //     state = 6;
-        //     rkMotorsDriveAsync(1110, 1110, speed, [&](){printf("vytlacil\n"); state = 7;}); // ************ bez couvani - state 9 
-        // }
+        if(state == 5) {
+            state = 6;
+            rkMotorsDriveAsync(1110, 1110, speed, [&](){printf("vytlacil\n"); state = 7;}); // ************ bez couvani - state 9 
+        }
 
-        // if(state == 7) { // ************ couvani - nebezpecne bez ultrazvuku 
-        //     state = 8;
-        //     rkMotorsDriveAsync(-50, -50, speedSlow, [&](){printf("couvl\n"); state = 9;});
-        // }
+        if(state == 7) { // ************ couvani - nebezpecne bez ultrazvuku 
+            state = 8;
+            rkMotorsDriveAsync(-50, -50, speedSlow, [&](){printf("couvl\n"); state = 9;});
+        }
 
-        // if(state == 9) { 
-        //     state = 10;
-        //     if (red){
-        //         rkMotorsDriveAsync(260, -260, speedSlow, [&](){printf("otocil se zpet\n"); state = 11;});
-        //     }
-        //     else {
-        //         rkMotorsDriveAsync(-260, 260, speedSlow, [&](){printf("otocil se zpet\n"); state = 11;});
-        //         delay(500);
-        //     }
-        // }
+        if(state == 9) { 
+            state = 10;
+            if (red){
+                rkMotorsDriveAsync(260, -260, speedSlow, [&](){printf("otocil se zpet\n"); state = 11;});
+            }
+            else {
+                rkMotorsDriveAsync(-260, 260, speedSlow, [&](){printf("otocil se zpet\n"); state = 11;});
+                delay(500);
+            }
+        }
 
-        // if(state == 11) {
-        //     state = 12;
-        //     rkMotorsDriveAsync(1220, 1220, speed, [&](){printf("vraci se zpet\n"); state = 13;});
-        // }
+        if(state == 11) {
+            state = 12;
+            rkMotorsDriveAsync(1220, 1220, speed, [&](){printf("vraci se zpet\n"); state = 13;});
+        }
 
-        // if(state == 13) { 
-        //     state = 14;
-        //     if (red){
-        //         rkMotorsDriveAsync(-140, 140, speedSlow, [&](){printf("otocil se na start\n"); state = 15;});
-        //     }
-        //     else {
-        //         rkMotorsDriveAsync(140, -140, speedSlow, [&](){printf("otocil se na start\n"); state = 15;});
-        //         delay(500);
-        //     }
-        // }
-        // if(state == 15) {
-        //     state = 16;
-        //     rkMotorsDriveAsync(650, 650, speed, [&](){printf("zpet na start\n"); state = 17;});
-        // }
+        if(state == 13) { 
+            state = 14;
+            if (red){
+                rkMotorsDriveAsync(-140, 140, speedSlow, [&](){printf("otocil se na start\n"); state = 15;});
+            }
+            else {
+                rkMotorsDriveAsync(140, -140, speedSlow, [&](){printf("otocil se na start\n"); state = 15;});
+            }
+            delay(500);
+        }
+        if(state == 15) {
+            state = 16;
+            rkMotorsDriveAsync(650, 650, speed, [&](){printf("zpet na start\n"); state = 17;});
+        }
         
     }
 }
