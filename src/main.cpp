@@ -42,7 +42,6 @@ byte min_arr(byte *arr, int &index){
 }
 
 void ultrasonic() {
-    g_started.
     int pozice0, pozice1, pozice2;
     while (true) {
             if (Serial1.available() > 0) { 
@@ -55,6 +54,35 @@ void ultrasonic() {
                         switch (head) {
                         case msgHeader[0]: 
                             Serial1.readBytes(readData0, readSize); //It require two things, variable name to read into, number of bytes to read.
+
+                        if ((readData0[2] < (minVzdal +5) ) and (readData0[2] > 0 ) ) {
+                                if(state < 7) {
+                                    readData0[2] = readData0[2] + 70; // robot zastavuje pri vzd. 60 -> pri jizde vpred nezpusobi zastaveni robota 
+                                }
+                                // else {
+                                //     readData0[6] = readData0[6] + 30; // pri jizde vzad zastavi tesne pred prekazkou 
+                                // }
+                        }  
+
+                        if ((readData0[3] < (minVzdal +5) ) and (readData0[3] > 0 ) ) {
+                                if(state < 7) {
+                                    readData0[3] = readData0[3] + 70; // robot zastavuje pri vzd. 60 -> pri jizde vpred nezpusobi zastaveni robota 
+                                }
+                                // else {
+                                //     readData0[6] = readData0[6] + 30; // pri jizde vzad zastavi tesne pred prekazkou 
+                                // }
+                        } 
+
+                        if ((readData0[4] < (minVzdal +5) ) and (readData0[4] > 0 ) ) {
+                                if(state < 7) {
+                                    readData0[4] = readData0[4] + 70; // robot zastavuje pri vzd. 60 -> pri jizde vpred nezpusobi zastaveni robota 
+                                }
+                                // else {
+                                //     readData0[6] = readData0[6] + 30; // pri jizde vzad zastavi tesne pred prekazkou 
+                                // }
+                        } 
+
+
                             for(int i = 0; i<8; i++) { printf("%i: %i, ", i, readData0[i]); } printf("\n ");
                             break;        
                         case msgHeader[1]:
@@ -75,6 +103,10 @@ void ultrasonic() {
                         printf("Souper blizi...");
                         if(startState) {
                             printf("Souper se prilis priblizil...");
+                            for(int i = 1; i<5; i++) {
+                                rkLedById(i, true);
+                            }
+                            //delay(45000); 
                             abort();
                         }
                     }
@@ -172,9 +204,9 @@ void setup() {
         delay(10);
     }
     printf("Rozjizdim se %lu \n", millis() );
-    delay(1500); // robot se pri vytahovani lanka musi pridrzet -> pocka, nez oddelam ruku, 
+    delay(500); // robot se pri vytahovani lanka musi pridrzet -> pocka, nez oddelam ruku, 
     printf("Rozjel jsem se %lu \n", millis() );
-    std::thread t2(ultrasonic);
+    //std::thread t2(ultrasonic);
     printf("Start Ultrasonic %lu \n", millis() );
 // ********************************************************************************************
    while(true){  // hlavni smycka 
@@ -182,7 +214,7 @@ void setup() {
             state = 2;
             rkMotorsSetPositionLeft(true);
             rkMotorsSetPositionRight(true);
-            rkMotorsDriveAsync(500, 500, speed, [&](){printf("ze startu\n"); state = 3;}); //500, 500
+            rkMotorsDriveAsync(350, 350, speed, [&](){printf("ze startu\n"); state = 3;}); //500, 500
             
             // dojeti zbytku vzdalenosti
             // rkMotorsDriveAsync(500 - rkMotorsGetPositionLeft(), 500, speed, [&](){printf("ze startu\n"); state = 3;});
@@ -201,7 +233,7 @@ void setup() {
 
         if(state == 3) {
             state = 4;
-            float turnState3 = 135;
+            float turnState3 = 137;
             if (red){
                 rkMotorsDriveAsync(turnState3, -turnState3, speedSlow, [&](){printf("zatocil k nakladaku\n"); state = 5;});
             }
@@ -212,7 +244,7 @@ void setup() {
         }
         if(state == 5) {
             state = 6;
-            rkMotorsDriveAsync(1110, 1110, speed, [&](){printf("vytlacil\n"); state = 7;}); // ************ bez couvani - state 9 
+            rkMotorsDriveAsync(1200, 1200, speed, [&](){printf("vytlacil\n"); state = 7;}); // ************ bez couvani - state 9 
         }
 
         if(state == 7) { // ************ couvani - nebezpecne bez ultrazvuku 
@@ -223,36 +255,33 @@ void setup() {
         if(state == 9) { 
             state = 10;
             if (red){
-                rkMotorsDriveAsync(260, -260, speedSlow, [&](){printf("otocil se zpet\n"); state = 11;});
+                rkMotorsDriveAsync(245, -245, speedSlow, [&](){printf("otocil se zpet\n"); state = 11;});
             }
             else {
-                rkMotorsDriveAsync(-260, 260, speedSlow, [&](){printf("otocil se zpet\n"); state = 11;});
+                rkMotorsDriveAsync(-245, 245, speedSlow, [&](){printf("otocil se zpet\n"); state = 11;});
                 delay(500);
             }
         }
 
         if(state == 11) {
             state = 12;
-            rkMotorsDriveAsync(1220, 1220, speed, [&](){printf("vraci se zpet\n"); state = 13;});
+            rkMotorsDriveAsync(1320, 1320, speed, [&](){printf("vraci se zpet\n"); state = 13;});
         }
 
         if(state == 13) { 
             state = 14;
             if (red){
-                rkMotorsDriveAsync(-140, 140, speedSlow, [&](){printf("otocil se na start\n"); state = 15;});
+                rkMotorsDriveAsync(-150, 150, speedSlow, [&](){printf("otocil se na start\n"); state = 15;});
             }
             else {
-                rkMotorsDriveAsync(140, -140, speedSlow, [&](){printf("otocil se na start\n"); state = 15;});
+                rkMotorsDriveAsync(150, -150, speedSlow, [&](){printf("otocil se na start\n"); state = 15;});
             }
-            delay(500);
+            delay(1000);
         }
         if(state == 15) {
             state = 16;
-            rkMotorsDriveAsync(650, 650, speed, [&](){printf("zpet na start\n"); state = 17;});
+            rkMotorsDriveAsync(900, 900, speed, [&](){printf("zpet na start\n"); state = 17;});
         }
         
     }
 }
-
-
-
